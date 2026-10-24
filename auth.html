@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Log in or create your Velocity Arena account to book activities and tournaments.">
+  <title>Log in or Sign up — VELOCITY ARENA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-page">
+  <main class="auth-layout">
+    <a class="brand auth-brand" href="/">
+      <span class="brand-mark">V</span>
+      <span>VELOCITY <b>ARENA</b></span>
+    </a>
+    <section class="auth-card" aria-labelledby="authTitle">
+      <a class="auth-back" href="/">← Back to exploring</a>
+      <span class="section-kicker">YOUR NEXT GAME STARTS HERE</span>
+      <h1 id="authTitle">Welcome back</h1>
+      <p class="auth-intro" id="authIntro">Log in to manage bookings, tickets and tournaments.</p>
+      <div class="auth-tabs" role="tablist" aria-label="Account access">
+        <button class="auth-tab active" type="button" id="loginTab" role="tab" aria-selected="true">Log in</button>
+        <button class="auth-tab" type="button" id="signupTab" role="tab" aria-selected="false">Create account</button>
+      </div>
+      <form id="authForm">
+        <label class="auth-field" id="nameField" hidden>
+          <span>Full name</span>
+          <input id="name" name="name" autocomplete="name" minlength="2" maxlength="80" placeholder="Your name">
+        </label>
+        <label class="auth-field">
+          <span>Email address</span>
+          <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required placeholder="you@example.com">
+        </label>
+        <label class="auth-field">
+          <span>Password</span>
+          <input id="password" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required placeholder="At least 8 characters">
+        </label>
+        <button class="auth-link" id="forgotPasswordLink" type="button">Forgot password?</button>
+        <p class="auth-error" id="authError" role="alert" hidden></p>
+        <button class="primary-btn full auth-submit" id="submitButton" type="submit">Log in</button>
+      </form>
+      <form id="forgotPasswordForm" hidden>
+        <label class="auth-field">
+          <span>Account email</span>
+          <input id="forgotEmail" type="email" autocomplete="email" maxlength="254" required placeholder="you@example.com">
+        </label>
+        <p class="auth-error" id="forgotError" role="alert" hidden></p>
+        <button class="primary-btn full auth-submit" id="forgotSubmit" type="submit">Create reset link</button>
+        <button class="auth-link" id="backToLogin" type="button">Back to log in</button>
+      </form>
+      <form id="resetPasswordForm" hidden>
+        <label class="auth-field">
+          <span>New password</span>
+          <input id="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="At least 8 characters">
+        </label>
+        <label class="auth-field">
+          <span>Confirm new password</span>
+          <input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Repeat your new password">
+        </label>
+        <p class="auth-error" id="resetError" role="alert" hidden></p>
+        <button class="primary-btn full auth-submit" id="resetSubmit" type="submit">Update password</button>
+      </form>
+      <p class="auth-note">Your password is securely hashed and never stored as plain text.</p>
+    </section>
+  </main>
+  <script src="auth.js"></script>
+</body>
+</html>

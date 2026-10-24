@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="VELOCITY ARENA — discover and book gaming and sports experiences near you.">
+  <title>VELOCITY ARENA — Play More. Book Easily.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+  <div class="server-notice" id="serverNotice" role="alert" hidden>
+    <strong>App server required.</strong>
+    <span>For login, cities and bookings, start the Node app with <code>start.bat</code>, then open </span>
+    <a href="http://localhost:3000">http://localhost:3000</a>.
+  </div>
+
+  <header class="navbar">
+    <a href="#home" class="brand" aria-label="Velocity Arena home">
+      <span class="brand-mark">V</span>
+      <span>VELOCITY <b>ARENA</b></span>
+    </a>
+    <nav class="desktop-nav">
+      <a href="#home">Home</a>
+      <a href="#activities">Explore</a>
+      <a href="#venues">Activities</a>
+      <a href="#tournaments">Tournaments</a>
+      <a href="#deals">Deals</a>
+    </nav>
+    <div class="nav-actions">
+      <button class="icon-btn" id="globalSearchBtn" aria-label="Search">⌕</button>
+      <button class="location-pill" id="locationBtn" type="button">⌖ Ahmedabad</button>
+      <a class="nav-bookings" href="#bookings">My Bookings</a>
+      <button class="outline-btn login-btn" id="loginBtn">Login / Sign Up</button>
+      <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero section" id="home">
+      <div class="hero-copy">
+        <div class="eyebrow"><span></span> YOUR CITY. YOUR GAME. YOUR SLOT.</div>
+        <h1>PLAY MORE.<br><em>BOOK EASILY.</em></h1>
+        <p>Discover and book the best gaming and sports experiences near you — from box cricket and bowling to karting and VR.</p>
+        <div class="hero-buttons">
+          <a class="primary-btn" href="#activities">Explore Activities <span>→</span></a>
+          <button class="secondary-btn" id="nearbyBtn">⌖ Find Nearby</button>
+        </div>
+        <div class="hero-trust">
+          <div class="avatar-stack"><i>R</i><i>K</i><i>A</i><i>+</i></div>
+          <span><strong>4.8/5</strong> from 2,400+ players</span>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-main-image image-box" style="background-image:url('https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=1400&q=85')"></div>
+        <div class="hero-card hc-one"><strong>120+</strong><span>Venues</span></div>
+        <div class="hero-card hc-two"><strong>2,500+</strong><span>Slots / week</span></div>
+        <div class="hero-card hc-three"><strong>4.8 ★</strong><span>Average rating</span></div>
+        <div class="hero-photo-tag">LIVE <span>•</span> 18 players booking now</div>
+      </div>
+    </section>
+
+    <section class="search-wrap">
+      <div class="search-panel">
+        <div class="field">
+          <small>LOCATION</small>
+          <button class="field-btn" id="searchLocation" type="button">⌖ <span>Ahmedabad</span>⌄</button>
+        </div>
+        <div class="field">
+          <small>ACTIVITY</small>
+          <select id="searchActivity">
+            <option value="">Any activity</option>
+            <option>Box Cricket</option><option>Gaming Café</option><option>Bowling</option>
+            <option>Go-Karting</option><option>Badminton</option><option>Football Turf</option>
+            <option>Basketball</option><option>Pool / Snooker</option><option>VR Gaming</option><option>Laser Tag</option>
+          </select>
+        </div>
+        <div class="field">
+          <small>DATE</small>
+          <input id="searchDate" type="date">
+        </div>
+        <div class="field">
+          <small>PLAYERS</small>
+          <select id="searchPlayers"><option>2</option><option>4</option><option>6</option><option selected>8</option><option>10</option><option>12</option><option>16</option></select>
+        </div>
+        <button class="find-btn" id="findSlotsBtn">Find Slots <span>→</span></button>
+      </div>
+    </section>
+
+    <section class="section" id="activities">
+      <div class="section-head">
+        <div><span class="section-kicker">PICK YOUR PLAY</span><h2>Explore Activities</h2></div>
+        <a href="#venues" class="text-link">View all activities →</a>
+      </div>
+      <div class="activity-grid" id="activityGrid"></div>
+    </section>
+
+    <section class="section alt-section" id="venues">
+      <div class="section-head">
+        <div><span class="section-kicker">HANDPICKED FOR YOU</span><h2>Popular Near <span id="searchCityCaption">Ahmedabad</span></h2><p class="listing-note">Locally stored sample listings · confirm details with venues.</p></div>
+        <button class="filter-open" id="filterOpen">☷ Filters</button>
+      </div>
+      <div class="venue-toolbar">
+        <div class="filter-chips" id="filterChips">
+          <button class="chip active" data-filter="all">All</button>
+          <button class="chip" data-filter="indoor">Indoor</button>
+          <button class="chip" data-filter="outdoor">Outdoor</button>
+          <button class="chip" data-filter="open">Open Now</button>
+          <button class="chip" data-filter="under500">Under ₹500</button>
+        </div>
+        <select id="sortSelect" class="sort-select">
+          <option value="recommended">Recommended</option>
+          <option value="low">Price: Low → High</option>
+          <option value="high">Price: High → Low</option>
+          <option value="near">Nearest</option>
+          <option value="rating">Highest Rated</option>
+        </select>
+      </div>
+      <div class="venue-layout">
+        <aside class="filter-panel" id="filterPanel">
+          <div class="filter-title">Smart Filters <button id="closeFilter">×</button></div>
+          <label>Activity Type</label>
+          <select id="typeFilter"><option value="">All types</option></select>
+          <label>Minimum Rating</label>
+          <select id="ratingFilter"><option value="0">Any rating</option><option value="4.5">4.5+</option><option value="4.7">4.7+</option><option value="4.8">4.8+</option></select>
+          <label>Players</label>
+          <select id="playerFilter"><option value="0">Any group</option><option value="4">4+</option><option value="8">8+</option><option value="12">12+</option></select>
+          <label class="check-row"><input id="todayFilter" type="checkbox"> Available today</label>
+          <label class="check-row"><input id="openFilter" type="checkbox"> Open now</label>
+          <label class="check-row"><input id="indoorFilter" type="checkbox"> Indoor</label>
+          <label class="check-row"><input id="outdoorFilter" type="checkbox"> Outdoor</label>
+          <button class="clear-btn" id="clearFilters">Clear all filters</button>
+        </aside>
+        <div class="venue-grid" id="venueGrid"></div>
+      </div>
+    </section>
+
+    <section class="feature-banner section">
+      <div>
+        <span class="section-kicker">DON'T HAVE A FULL TEAM?</span>
+        <h2>Find players. Build your game.</h2>
+        <p>Join public matches around <span id="playersCity">Ahmedabad</span> or create a private game and invite your crew.</p>
+      </div>
+      <div class="banner-actions"><a href="#players" class="primary-btn">Find Players →</a><button class="secondary-btn" id="createMatchBtn">+ Create Match</button></div>
+    </section>
+
+    <section class="section" id="deals">
+      <div class="section-head">
+        <div><span class="section-kicker">PLAY MORE. SPEND LESS.</span><h2>Deals & Offers</h2></div>
+        <span class="deal-count" id="dealCountdown">Ends in 04:18:32</span>
+      </div>
+      <div class="deal-grid">
+        <article class="deal-card deal-flash">
+          <div><span class="deal-label">🔥 FLASH DEAL</span><h3>Box Cricket<br>Prime Hour</h3><p>8 PM – 9 PM · Select venues</p><div><del>₹1,200</del> <strong>₹799</strong></div></div>
+          <button class="white-btn" data-deal="FLASH799">Book Now →</button>
+        </article>
+        <article class="deal-card deal-purple">
+          <div><span class="deal-label">NEW PLAYER</span><h3>10% off your<br>first booking</h3><p>Use code <b>PLAY10</b> at checkout.</p></div>
+          <button class="white-btn" data-deal="PLAY10">Copy Code</button>
+        </article>
+        <article class="deal-card deal-dark">
+          <div><span class="deal-label">STUDENT DEAL</span><h3>Weekday games<br>from ₹249</h3><p>Valid Mon–Fri · Student ID required.</p></div>
+          <a href="#venues" class="ghost-white">Explore →</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="section tournament-section" id="tournaments">
+      <div class="section-head">
+        <div><span class="section-kicker">COMPETE. CONNECT. WIN.</span><h2>Upcoming Tournaments</h2></div>
+        <a class="text-link" href="#tournaments">View all →</a>
+      </div>
+      <div class="tournament-grid">
+        <article class="tournament-card">
+          <div class="tour-image" style="background-image:url('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1000&q=85')"><span>REGISTRATION OPEN</span></div>
+          <div class="tour-body"><span class="tour-game">🏏 BOX CRICKET</span><h3>Ahmedabad Box Cricket Championship</h3><p>📍 The Box Arena · 19 Oct 2026</p><div class="tour-meta"><span>24 Teams</span><span>Entry ₹999/team</span><b>Prize ₹25K</b></div><button class="primary-btn full" data-tournament="Ahmedabad Box Cricket Championship">View Tournament</button></div>
+        </article>
+        <article class="tournament-card">
+          <div class="tour-image" style="background-image:url('https://images.unsplash.com/photo-1534158914592-062992fbe900?auto=format&fit=crop&w=1000&q=85')"><span>REGISTRATION OPEN</span></div>
+          <div class="tour-body"><span class="tour-game">🎳 BOWLING</span><h3>Strike Night Open 2026</h3><p>📍 Strike Zone · 24 Oct 2026</p><div class="tour-meta"><span>64 Players</span><span>Entry ₹499</span><b>Prize ₹15K</b></div><button class="primary-btn full" data-tournament="Strike Night Open 2026">View Tournament</button></div>
+        </article>
+        <article class="tournament-card">
+          <div class="tour-image" style="background-image:url('https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1000&q=85')"><span>COMING SOON</span></div>
+          <div class="tour-body"><span class="tour-game">🏎️ GO-KARTING</span><h3>Velocity Kart League</h3><p>📍 Apex Karting · 25 Oct 2026</p><div class="tour-meta"><span>32 Racers</span><span>Entry ₹1,299</span><b>Prize ₹30K</b></div><button class="secondary-btn full" data-tournament="Velocity Kart League">View Tournament</button></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section players-section" id="players">
+      <div class="section-head">
+        <div><span class="section-kicker">NEED A FEW MORE?</span><h2>Find Players</h2></div>
+        <button class="primary-btn" id="createMatchBtn2">+ Create Match</button>
+      </div>
+      <div class="player-grid" id="playerGrid">
+        <article class="player-card"><div class="player-icon cricket">🏏</div><div class="player-info"><span>BOX CRICKET</span><h3>Friday Night Cricket</h3><p>Today · 8:00 PM · Box Arena</p><div class="progress"><i style="width:60%"></i></div><small>6 / 10 players · ₹180/person</small></div><button class="join-btn">Join</button></article>
+        <article class="player-card"><div class="player-icon gaming">🎮</div><div class="player-info"><span>GAMING CAFÉ</span><h3>FC 26 2v2 Night</h3><p>Today · 9:30 PM · GameGrid</p><div class="progress"><i style="width:50%"></i></div><small>2 / 4 players · ₹220/person</small></div><button class="join-btn">Join</button></article>
+        <article class="player-card"><div class="player-icon badminton">🏸</div><div class="player-info"><span>BADMINTON</span><h3>Casual Doubles</h3><p>Tomorrow · 7:00 PM · Smash Point</p><div class="progress"><i style="width:50%"></i></div><small>2 / 4 players · ₹150/person</small></div><button class="join-btn">Join</button></article>
+      </div>
+    </section>
+
+    <section class="section reviews-section">
+      <div class="section-head"><div><span class="section-kicker">REAL PLAYERS. REAL EXPERIENCES.</span><h2>Loved by the community</h2></div></div>
+      <div class="review-grid">
+        <article class="review-card"><div class="stars">★★★★★</div><p>“The slot selection was super simple. We booked cricket in under two minutes and the venue was exactly as shown.”</p><div class="reviewer"><span>AK</span><div><b>Aarav K.</b><small>Verified Booking · Box Cricket</small></div></div></article>
+        <article class="review-card"><div class="stars">★★★★★</div><p>“Finally one place to compare bowling, gaming cafés and karting. The filters are actually useful.”</p><div class="reviewer"><span>MS</span><div><b>Meera S.</b><small>Verified Booking · Bowling</small></div></div></article>
+        <article class="review-card"><div class="stars">★★★★★</div><p>“Joined a public badminton game when my friends cancelled. Met a great group and saved the weekend.”</p><div class="reviewer"><span>RV</span><div><b>Rohan V.</b><small>Verified Booking · Badminton</small></div></div></article>
+      </div>
+    </section>
+
+    <section class="section feature-showcase">
+      <div class="section-head">
+        <div><span class="section-kicker">WHY PLAY WITH US</span><h2>Built for fast bookings and better play</h2></div>
+      </div>
+      <div class="benefit-grid">
+        <article class="benefit-card">
+          <div class="benefit-icon">⚡</div>
+          <h3>Instant Booking</h3>
+          <p>Pick your venue, time slot, and players in under a minute.</p>
+        </article>
+        <article class="benefit-card">
+          <div class="benefit-icon">🎯</div>
+          <h3>Curated Matches</h3>
+          <p>Find public games and private sessions perfect for your skill level.</p>
+        </article>
+        <article class="benefit-card">
+          <div class="benefit-icon">💬</div>
+          <h3>Community-led</h3>
+          <p>Meet teammates, join local tournaments, and grow your circle.</p>
+        </article>
+        <article class="benefit-card">
+          <div class="benefit-icon">🏆</div>
+          <h3>Local Rewards</h3>
+          <p>Unlock member perks, seasonal offers, and cashback on repeat play.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section steps-section">
+      <div class="section-head">
+        <div><span class="section-kicker">HOW IT WORKS</span><h2>From browse to booking in 3 steps</h2></div>
+      </div>
+      <div class="steps-grid">
+        <article class="step-card">
+          <span class="step-number">01</span>
+          <h3>Choose your activity</h3>
+          <p>Explore indoor and outdoor sports, gaming spaces, and premium experiences.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-number">02</span>
+          <h3>Pick a time slot</h3>
+          <p>Compare live availability, pricing, and ratings before you book.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-number">03</span>
+          <h3>Pay & play</h3>
+          <p>Confirm your booking and show the ticket at the venue when you arrive.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section stats-section">
+      <div class="stats-grid">
+        <div class="stat-card highlight">
+          <span class="stat-label">Live Bookings</span>
+          <strong>1,284</strong>
+          <small>Confirmed this week</small>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Cities Covered</span>
+          <strong>18+</strong>
+          <small>Across India</small>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Average Rating</span>
+          <strong>4.8/5</strong>
+          <small>From active users</small>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Repeat Players</span>
+          <strong>72%</strong>
+          <small>Return every month</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="section faq-section" id="faq">
+      <div class="section-head">
+        <div><span class="section-kicker">QUESTIONS?</span><h2>Frequently asked questions</h2></div>
+      </div>
+      <div class="faq-list">
+        <article class="faq-item open">
+          <button class="faq-question" type="button">How quickly can I book a slot?<span>+</span></button>
+          <div class="faq-answer">
+            <p>You can browse venues, select a preferred timeslot, and confirm booking in less than 2 minutes with instant checkout.</p>
+          </div>
+        </article>
+        <article class="faq-item">
+          <button class="faq-question" type="button">Can I join public games with my friends?<span>+</span></button>
+          <div class="faq-answer">
+            <p>Yes. You can create private matches or join public sessions with open spots and connect with other players nearby.</p>
+          </div>
+        </article>
+        <article class="faq-item">
+          <button class="faq-question" type="button">Are there discount offers for first-time users?<span>+</span></button>
+          <div class="faq-answer">
+            <p>Absolutely. New players often get welcome discounts, seasonal offers, and cashback on selected venues and activities.</p>
+          </div>
+        </article>
+        <article class="faq-item">
+          <button class="faq-question" type="button">Do you support group bookings?<span>+</span></button>
+          <div class="faq-answer">
+            <p>Yes, the platform supports teams, small groups, and event bookings for birthdays, matches, or corporate outings.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section cta-section">
+      <div class="cta-box">
+        <div>
+          <span class="section-kicker">STAY IN THE LOOP</span>
+          <h2>Get insider deals and event drops.</h2>
+        </div>
+        <form class="cta-form" id="newsletterForm">
+          <input type="email" id="newsletterEmail" placeholder="Enter your email address" aria-label="Email address">
+          <button class="primary-btn" id="newsletterBtn" type="submit">Join Now</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-top">
+      <div class="footer-brand"><a class="brand" href="#home"><span class="brand-mark">V</span><span>VELOCITY <b>ARENA</b></span></a><p>Your gateway to better games and better experiences.</p><div class="socials"><span title="Social account not configured in the local demo">ig</span><span title="Social account not configured in the local demo">in</span><span title="Social account not configured in the local demo">x</span></div></div>
+      <div><h4>Company</h4><a href="#home" data-footer-info="about">About</a><a href="#contact" data-footer-info="contact">Contact</a><a href="#careers" data-footer-info="careers">Careers</a></div>
+      <div><h4>Explore</h4><a href="#activities">Activities</a><a href="#venues">Venues</a><a href="#tournaments">Tournaments</a><a href="#deals">Deals</a></div>
+      <div><h4>Support</h4><a href="#faq">Help Center</a><a href="#cancellation" data-footer-info="cancellation">Cancellation Policy</a><a href="#terms" data-footer-info="terms">Terms</a><a href="#privacy" data-footer-info="privacy">Privacy</a></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 Velocity Arena. Local demo checkout; no payments are charged.</span><span>Made for players, teams & thrill-seekers.</span></div>
+  </footer>
+
+  <div class="mobile-menu" id="mobileMenu">
+    <button id="closeMenu">×</button>
+    <a href="#home">Home</a><a href="#activities">Explore</a><a href="#venues">Activities</a><a href="#tournaments">Tournaments</a><a href="#deals">Deals</a><a href="#bookings">My Bookings</a>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" id="modal">
+      <button class="modal-close" id="modalClose">×</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <a href="#home">⌂<span>Home</span></a><a href="#activities">◉<span>Explore</span></a><a href="#venues">▣<span>Venues</span></a><a href="#bookings">▤<span>Bookings</span></a><button id="bottomProfile">●<span>Profile</span></button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
