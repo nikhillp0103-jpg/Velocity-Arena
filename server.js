@@ -83,8 +83,10 @@ const sessionDurationSeconds = 60 * 60 * 24 * 14;
 
 fs.mkdirSync(path.dirname(databasePath), { recursive: true });
 const db = new Database(databasePath);
-db.pragma("journal_mode = WAL");
+// WAL needs extra -wal/-shm files and is unreliable on Vercel's ephemeral /tmp.
+db.pragma(process.env.VERCEL ? "journal_mode = DELETE" : "journal_mode = WAL");
 db.pragma("foreign_keys = ON");
+db.pragma("busy_timeout = 5000");
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -184,24 +186,27 @@ const insertCity = db.prepare("INSERT OR IGNORE INTO cities (slug, name, state) 
 const insertVenue = db.prepare(`INSERT OR IGNORE INTO venues
   (city_key, name, activity, rating, review_count, distance_km, price, environment, max_players, is_open, image_url)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-const seedCityAndVenues = db.transaction(() => {
-  for (const city of cityList) {
-    insertCity.run(city.slug, city.name, city.state);
-    for (const venue of venueList) {
-      const rating = Number((4.5 + ((venue.id * 7 + city.name.length) % 5) / 10).toFixed(1));
-      const environment = venue.id % 2 === 0 ? "outdoor" : "indoor";
-      const maxPlayers = [8, 4, 8, 2, 4, 12, 4, 4, 10, 10][venue.id % 10];
-      const isOpen = venue.id % 7 === 6 ? 0 : 1;
-      const name = city.slug === "ahmedabad" ? venue.name : `${venue.name} · ${city.name}`;
-      insertVenue.run(
-        city.slug, name, venue.activity, rating, 45 + ((venue.id * 31 + city.name.length * 13) % 280),
-        Number((0.8 + ((venue.id * 17 + city.name.length) % 85) / 10).toFixed(1)),
-        venue.price, environment, maxPlayers, isOpen, activityImages[venue.activity]
-      );
-    }
+const venueCountForCity = db.prepare("SELECT COUNT(*) AS count FROM venues WHERE city_key = ?");
+const seedCities = db.transaction(() => {
+  for (const city of cityList) insertCity.run(city.slug, city.name, city.state);
+});
+const seedVenuesForCity = db.transaction(city => {
+  for (const venue of venueList) {
+    const rating = Number((4.5 + ((venue.id * 7 + city.name.length) % 5) / 10).toFixed(1));
+    const environment = venue.id % 2 === 0 ? "outdoor" : "indoor";
+    const maxPlayers = [8, 4, 8, 2, 4, 12, 4, 4, 10, 10][venue.id % 10];
+    const isOpen = venue.id % 7 === 6 ? 0 : 1;
+    const name = city.slug === "ahmedabad" ? venue.name : `${venue.name} · ${city.name}`;
+    insertVenue.run(
+      city.slug, name, venue.activity, rating, 45 + ((venue.id * 31 + city.name.length * 13) % 280),
+      Number((0.8 + ((venue.id * 17 + city.name.length) % 85) / 10).toFixed(1)),
+      venue.price, environment, maxPlayers, isOpen, activityImages[venue.activity]
+    );
   }
 });
-seedCityAndVenues();
+// Seed city rows only at boot. Venue rows are filled per city on first request so
+// Vercel cold starts stay under the serverless time limit (full seed is 64×20 inserts).
+seedCities();
 db.exec("CREATE UNIQUE INDEX IF NOT EXISTS bookings_venue_slot_unique ON bookings (venue_id, booking_date, time_slot) WHERE venue_id IS NOT NULL");
 
 const statements = {
@@ -256,20 +261,35 @@ const statements = {
   venueForActivity: db.prepare("SELECT name FROM venues WHERE city_key = ? AND activity = ? ORDER BY id LIMIT 1")
 };
 
-const today = new Date();
-const tomorrow = new Date(today);
-tomorrow.setDate(tomorrow.getDate() + 1);
-const seedMatches = db.transaction(() => {
-  for (const city of cityList) {
-    if (statements.upcomingMatchesForCity.get(city.slug).count) continue;
-    const cricketVenue = statements.venueForActivity.get(city.slug, "Box Cricket");
-    const gamingVenue = statements.venueForActivity.get(city.slug, "Gaming Café");
-    if (!cricketVenue || !gamingVenue) continue;
-    statements.seedMatch.run(crypto.randomUUID(), `Open Cricket · ${city.name}`, "Box Cricket", cricketVenue.name, city.slug, today.toISOString().slice(0, 10), "8:00 PM", 10, 180, 6, new Date().toISOString());
-    statements.seedMatch.run(crypto.randomUUID(), `Open Gaming · ${city.name}`, "Gaming Café", gamingVenue.name, city.slug, tomorrow.toISOString().slice(0, 10), "7:00 PM", 4, 220, 2, new Date().toISOString());
-  }
-});
-seedMatches();
+function ensureCityVenues(citySlug) {
+  const city = statements.cityBySlug.get(citySlug);
+  if (!city) return false;
+  if (venueCountForCity.get(citySlug).count >= venueList.length) return true;
+  seedVenuesForCity(city);
+  return true;
+}
+
+function ensureCityMatches(citySlug) {
+  if (!ensureCityVenues(citySlug)) return false;
+  if (statements.upcomingMatchesForCity.get(citySlug).count) return true;
+  const city = statements.cityBySlug.get(citySlug);
+  const cricketVenue = statements.venueForActivity.get(citySlug, "Box Cricket");
+  const gamingVenue = statements.venueForActivity.get(citySlug, "Gaming Café");
+  if (!city || !cricketVenue || !gamingVenue) return false;
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const seedMatchesForCity = db.transaction(() => {
+    statements.seedMatch.run(crypto.randomUUID(), `Open Cricket · ${city.name}`, "Box Cricket", cricketVenue.name, citySlug, today.toISOString().slice(0, 10), "8:00 PM", 10, 180, 6, new Date().toISOString());
+    statements.seedMatch.run(crypto.randomUUID(), `Open Gaming · ${city.name}`, "Gaming Café", gamingVenue.name, citySlug, tomorrow.toISOString().slice(0, 10), "7:00 PM", 4, 220, 2, new Date().toISOString());
+  });
+  seedMatchesForCity();
+  return true;
+}
+
+// Default city is ready immediately so the homepage and booking modal work on cold start.
+ensureCityVenues("ahmedabad");
+ensureCityMatches("ahmedabad");
 
 const safeEqual = (left, right) => {
   const a = Buffer.from(left);
@@ -342,13 +362,15 @@ app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 app.get("/api/cities", (req, res) => res.json({ cities: statements.cities.all() }));
 app.get("/api/venues", (req, res) => {
   const city = typeof req.query.city === "string" ? req.query.city : "ahmedabad";
-  if (!statements.cityBySlug.get(city)) return res.status(404).json({ error: "That city is not in the local listings yet." });
+  if (!ensureCityVenues(city)) return res.status(404).json({ error: "That city is not in the local listings yet." });
   return res.json({ venues: statements.venuesForCity.all(city) });
 });
 app.get("/api/availability", (req, res) => {
   const venueId = Number(req.query.venueId);
   const date = typeof req.query.date === "string" ? req.query.date : "";
-  if (!Number.isSafeInteger(venueId) || !statements.venueById.get(venueId)) return res.status(404).json({ error: "Venue not found." });
+  if (!Number.isSafeInteger(venueId) || !statements.venueById.get(venueId)) {
+    return res.status(404).json({ error: "Venue not found. Refresh the city listings and try again." });
+  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || new Date(`${date}T00:00:00.000Z`).toISOString().slice(0, 10) !== date) {
     return res.status(400).json({ error: "Choose a valid date." });
   }
@@ -466,13 +488,14 @@ app.get("/api/bookings", requireUser, (req, res) => {
 app.get("/api/matches", (req, res) => {
   const user = currentUser(req);
   const city = typeof req.query.city === "string" ? req.query.city : "ahmedabad";
-  if (!statements.cityBySlug.get(city)) return res.status(404).json({ error: "That city is not in the local listings yet." });
+  if (!ensureCityMatches(city)) return res.status(404).json({ error: "That city is not in the local listings yet." });
   return res.json({ matches: statements.matches.all(user ? user.id : "", city) });
 });
 
 app.post("/api/matches", requireUser, (req, res) => {
   const { title, activity, venueId, city: cityKey, date, time, playerLimit, pricePerPlayer } = req.body;
   const safeTitle = typeof title === "string" ? title.trim() : "";
+  if (typeof cityKey === "string") ensureCityVenues(cityKey);
   const venue = Number.isSafeInteger(venueId) ? statements.venueById.get(venueId) : null;
   const selectedCity = typeof cityKey === "string" ? statements.cityBySlug.get(cityKey) : null;
   if (safeTitle.length < 3 || safeTitle.length > 60) return res.status(400).json({ error: "Match name must be between 3 and 60 characters." });
@@ -518,6 +541,7 @@ app.post("/api/matches/:id/join", requireUser, (req, res) => {
 
 app.post("/api/bookings", requireUser, (req, res) => {
   const { venueId, city: cityKey, date, time, players, coupon, phone } = req.body;
+  if (typeof cityKey === "string") ensureCityVenues(cityKey);
   const venue = Number.isSafeInteger(venueId) ? statements.venueById.get(venueId) : null;
   const selectedCity = typeof cityKey === "string" ? statements.cityBySlug.get(cityKey) : null;
   if (!selectedCity || !venue || venue.cityKey !== selectedCity.slug) return res.status(400).json({ error: "Choose a valid venue in the selected city." });

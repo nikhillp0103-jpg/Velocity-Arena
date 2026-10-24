@@ -5,7 +5,13 @@
       "src": "server.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["*.html", "*.css", "*.js"]
+        "maxDuration": 30,
+        "includeFiles": [
+          "*.html",
+          "*.css",
+          "*.js",
+          "node_modules/better-sqlite3/**"
+        ]
       }
     }
   ],

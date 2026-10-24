@@ -29,6 +29,21 @@ function readStoredJson(key,fallback){
   }catch{return fallback}
 }
 const escapeHtml=value=>String(value).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+function apiErrorMessage(result,status){
+  const error=result&&typeof result==="object"?result.error:null;
+  if(typeof error==="string"&&error.trim())return error.trim();
+  if(error&&typeof error==="object"){
+    if(typeof error.message==="string"&&error.message.trim())return error.message.trim();
+    if(typeof error.code==="string"&&error.code.trim()){
+      if(error.code==="FUNCTION_INVOCATION_FAILED"||error.code==="FUNCTION_INVOCATION_TIMEOUT"){
+        return "The booking service is warming up. Tap Retry in a moment.";
+      }
+      return `Server error (${error.code}). Please try again.`;
+    }
+  }
+  if(status>=500)return "The booking service is temporarily unavailable. Please try again.";
+  return `Request failed (${status}).`;
+}
 async function api(path,options={}){
   let response;
   try{
@@ -42,13 +57,14 @@ async function api(path,options={}){
     if(response.status===404||response.status===405||/^\s*</.test(responseText)){
       throw new Error("This page is running on a static preview, not the app server. Double-click start.bat and open http://localhost:3000.");
     }
+    if(response.status>=500)throw new Error("The booking service is temporarily unavailable. Please try again.");
     throw new Error(`The app server returned an unexpected response (${response.status}). Start the app with start.bat and retry.`);
   }
   if(!responseText.trim())throw new Error(`The app server returned an empty response (${response.status}). Restart it with start.bat and retry.`);
   let result;
   try{result=JSON.parse(responseText)}
   catch{throw new Error(`The app server returned invalid JSON (${response.status}). Restart it with start.bat and retry.`)}
-  if(!response.ok)throw new Error(result?.error||`Request failed (${response.status}).`);
+  if(!response.ok)throw new Error(apiErrorMessage(result,response.status));
   if(!result||typeof result!=="object")throw new Error("The app server returned an invalid response. Restart it with start.bat and retry.");
   return result;
 }
@@ -251,12 +267,17 @@ async function loadVenueSlots(venueId,date){
   container.classList.add("slots-loading");
   try{
     const {slots}=await api(`/api/availability?venueId=${encodeURIComponent(venueId)}&date=${encodeURIComponent(date)}`);
-    if(!container.isConnected)return;
-    container.innerHTML=slots.map((slot,index)=>`<button class="slot ${slot.available&&index===2?"active":""}" ${slot.available?"":"disabled"} onclick="selectSlot(this,'${slot.time}')">${slot.time}<br><small>${slot.available?"Available":"Booked"}</small></button>`).join("");
+    if(!container.isConnected)return [];
+    if(!Array.isArray(slots))throw new Error("Availability data was incomplete. Please retry.");
+    container.innerHTML=slots.map((slot,index)=>`<button class="slot ${slot.available&&index===2?"active":""}" ${slot.available?"":"disabled"} onclick="selectSlot(this,'${String(slot.time).replace(/'/g,"\\'")}')">${escapeHtml(slot.time)}<br><small>${slot.available?"Available":"Booked"}</small></button>`).join("");
     currentSlot=slots.find((slot,index)=>slot.available&&index===2)?.time||slots.find(slot=>slot.available)?.time||null;
     if(!currentSlot)toast("No slots are available on this date. Choose another date.");
     return slots;
-  }catch(error){if(container.isConnected)container.innerHTML=`<p class="slot-error">${escapeHtml(error.message)} <button class="text-link" onclick="loadVenueSlots(${Number(venueId)},'${date}')">Retry</button></p>`;return []}
+  }catch(error){
+    const message=typeof error?.message==="string"&&error.message.trim()?error.message:"Couldn't load time slots. Please retry.";
+    if(container.isConnected)container.innerHTML=`<p class="slot-error">${escapeHtml(message)} <button class="text-link" type="button" onclick="loadVenueSlots(${Number(venueId)},'${date}')">Retry</button></p>`;
+    return [];
+  }
   finally{if(container.isConnected)container.classList.remove("slots-loading")}
 }
 function selectDate(btn,date){$$(".slot-date").forEach(x=>x.classList.remove("active"));btn.classList.add("active");currentDate=new Date(`${date}T12:00:00`);currentSlot=null;loadVenueSlots(currentVenue,date)}
