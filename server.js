@@ -595,6 +595,10 @@ app.post("/api/newsletter", (req, res) => {
 });
 
 app.use("/api", (req, res) => res.status(404).json({ error: "API endpoint not found." }));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
 app.use(express.static(__dirname, {
   index: "index.html",
   dotfiles: "deny",
